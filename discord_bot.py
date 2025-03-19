@@ -1,10 +1,13 @@
 import discord
 from discord.ext import commands
 import os
+from dotenv import load_dotenv
 
-TOKEN = ''
-PREFIX = '/'
-intents = discord.Intents.all()
+load_dotenv()  # Загружаем переменные из .env
+
+TOKEN = os.getenv('DISCORD_TOKEN')  # Получаем токен из переменной окружения
+PREFIX = '/' # Префикс для команд
+intents = discord.Intents.all() # Включаем все интенты
 
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
