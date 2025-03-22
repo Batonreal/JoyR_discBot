@@ -43,8 +43,7 @@ def clear_directory(directory):
             except Exception as e:
                 print(f'Failed to delete {file_path}. Reason: {e}')
 
-def parse_reactor_geek():
-    url = 'https://reactor.cc/tag/geek'
+def parse_reactor_geek(url):
     response = requests.get(url)
     if response.status_code == 200:
         soup = BeautifulSoup(response.content, 'html.parser')
@@ -116,24 +115,26 @@ def parse_reactor_geek():
 async def fetch_images(ctx):
     """Fetch images from Reactor and send them to the Discord channel."""
     await ctx.send("Fetching images from Reactor...")
-    parse_reactor_geek()
-    images_dir = 'images'
-    if os.path.exists(images_dir):
-        images_sent = 0
-        for filename in os.listdir(images_dir):
-            file_path = os.path.join(images_dir, filename)
-            if os.path.isfile(file_path):
-                try:
-                    await ctx.send(file=discord.File(file_path))
-                    images_sent += 1
-                except Exception as e:
-                    print(f"Failed to send image {file_path}. Reason: {e}")
-        if images_sent == 0:
-            await ctx.send("No images were sent. The folder might be empty.")
+    url_list = ['https://reactor.cc/tag/geek', 'https://reactor.cc/tag/%D0%BF%D0%B5%D0%B9%D0%B7%D0%B0%D0%B6']
+    for url in url_list:
+        parse_reactor_geek(url)
+        images_dir = 'images'
+        if os.path.exists(images_dir):
+            images_sent = 0
+            for filename in os.listdir(images_dir):
+                file_path = os.path.join(images_dir, filename)
+                if os.path.isfile(file_path):
+                    try:
+                        await ctx.send(file=discord.File(file_path))
+                        images_sent += 1
+                    except Exception as e:
+                        print(f"Failed to send image {file_path}. Reason: {e}")
+            if images_sent == 0:
+                await ctx.send("No images were sent. The folder might be empty.")
+            else:
+                await ctx.send(f"Finished sending {images_sent} images.")
         else:
-            await ctx.send(f"Finished sending {images_sent} images.")
-    else:
-        await ctx.send("No images found.")
+            await ctx.send("No images found.")
 
 @bot.command()
 async def hello(ctx):
