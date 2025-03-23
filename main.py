@@ -18,6 +18,25 @@ intents = discord.Intents.all()  # Enable all intents
 
 bot = commands.Bot(command_prefix=PREFIX, intents=intents)
 
+URLS_FILE = 'urls.json'  # Файл для хранения списка URL
+
+def load_urls():
+    """Load the list of URLs from a JSON file."""
+    if os.path.exists(URLS_FILE):
+        with open(URLS_FILE, 'r') as file:
+            return json.load(file)
+    return []
+
+def save_url(new_url):
+    """Save a new URL to the JSON file."""
+    urls = load_urls()
+    if new_url not in urls:
+        urls.append(new_url)
+        with open(URLS_FILE, 'w') as file:
+            json.dump(urls, file, indent=4)  # Сохраняем в читаемом формате
+        return True
+    return False
+
 def load_processed_posts():
     """Load processed post IDs from a JSON file."""
     if os.path.exists(JSON_FILE):
@@ -112,10 +131,22 @@ def parse_reactor_geek(url):
         print(f'Failed to retrieve the page. Status code: {response.status_code}')
 
 @bot.command()
+async def add_url(ctx, url: str):
+    """Add a new URL to the list."""
+    if save_url(url):
+        await ctx.send(f"URL '{url}' has been added to the list.")
+    else:
+        await ctx.send(f"URL '{url}' is already in the list.")
+
+@bot.command()
 async def fetch_images(ctx):
     """Fetch images from Reactor and send them to the Discord channel."""
     await ctx.send("Fetching images from Reactor...")
-    url_list = ['https://reactor.cc/tag/geek', 'https://reactor.cc/tag/%D0%BF%D0%B5%D0%B9%D0%B7%D0%B0%D0%B6']
+    url_list = load_urls()  # Загружаем список URL из JSON
+    if not url_list:
+        await ctx.send("No URLs found in the list. Please add URLs using the /add_url command.")
+        return
+
     for url in url_list:
         parse_reactor_geek(url)
         images_dir = 'images'
@@ -128,13 +159,13 @@ async def fetch_images(ctx):
                         await ctx.send(file=discord.File(file_path))
                         images_sent += 1
                     except Exception as e:
-                        print(f"Failed to send image {file_path}. Reason: {e}")
+                        print("Failed to send image {file_path}. Reason: {e}")
             if images_sent == 0:
-                await ctx.send("No images were sent. The folder might be empty.")
+                print("No images were sent for URL: {url}. The folder might be empty.")
             else:
-                await ctx.send(f"Finished sending {images_sent} images.")
+                print("Finished sending {images_sent} images for URL: {url}.")
         else:
-            await ctx.send("No images found.")
+            print("No images found for URL: {url}.")
 
 @bot.command()
 async def hello(ctx):
