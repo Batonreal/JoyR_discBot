@@ -5,7 +5,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urljoin, unquote
 from shutil import copyfileobj
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 from dotenv import load_dotenv
 
 # Load environment variables
@@ -166,6 +166,21 @@ async def fetch_images(ctx):
                 print("Finished sending {images_sent} images for URL: {url}.")
         else:
             print("No images found for URL: {url}.")
+
+@tasks.loop(minutes=1)
+async def send_test_message():
+    """Send a test message to the #offtop channel every minute."""
+    channel = discord.utils.get(bot.get_all_channels(), name="offtop")
+    if channel:
+        await channel.send("@everyone test")
+    else:
+        print("Channel #offtop not found.")
+
+@bot.event
+async def on_ready():
+    """Start the loop when the bot is ready."""
+    print(f"Logged in as {bot.user}")
+    send_test_message.start()
 
 @bot.command()
 async def hello(ctx):
