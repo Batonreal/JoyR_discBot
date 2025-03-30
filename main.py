@@ -167,20 +167,56 @@ async def fetch_images(ctx):
         else:
             print("No images found for URL: {url}.")
 
-@tasks.loop(minutes=1)
-async def send_test_message():
-    """Send a test message to the #offtop channel every minute."""
-    channel = discord.utils.get(bot.get_all_channels(), name="offtop")
-    if channel:
-        await channel.send("@everyone test")
-    else:
-        print("Channel #offtop not found.")
+@bot.command()
+async def fetch_post_content(ctx):
+    """Fetch text from post_content and send it to the Discord channel."""
+    url = "https://polit.reactor.cc/"
+    response = requests.get(url)
+    if response.status_code == 200:
+        soup = BeautifulSoup(response.content, 'html.parser')
+        posts = soup.find_all('div', class_='postContainer')
 
-@bot.event
-async def on_ready():
-    """Start the loop when the bot is ready."""
-    print(f"Logged in as {bot.user}")
-    send_test_message.start()
+        if not posts:
+            await ctx.send("No posts found on the page.")
+            return
+
+        for post in posts:
+            post_id = post.get('id')
+            if not post_id:
+                continue
+
+            post_content = post.find('div', class_='post_content')
+            if post_content:
+                # Extract text
+                text_parts = post_content.find_all('p')
+                text_content = "\n".join(p.get_text(strip=True) for p in text_parts if p.get_text(strip=True))
+                if text_content:
+                    # Split text into chunks of 1980 characters to account for formatting
+                    prefix = f"**Post ID {post_id} Text (part):**\n"
+                    max_length = 2000 - len(prefix)
+                    for i in range(0, len(text_content), max_length):
+                        await ctx.send(f"{prefix}{text_content[i:i+max_length]}")
+                else:
+                    await ctx.send(f"No text found in post ID {post_id}.")
+            else:
+                await ctx.send(f"No content found in post ID {post_id}.")
+    else:
+        await ctx.send(f"Failed to retrieve the page. Status code: {response.status_code}")
+
+# @tasks.loop(minutes=1)
+# async def send_test_message():
+#     """Send a test message to the #offtop channel every minute."""
+#     channel = discord.utils.get(bot.get_all_channels(), name="offtop")
+#     if channel:
+#         await channel.send("@everyone test")
+#     else:
+#         print("Channel #offtop not found.")
+
+# @bot.event
+# async def on_ready():
+#     """Start the loop when the bot is ready."""
+#     print(f"Logged in as {bot.user}")
+#     send_test_message.start()
 
 @bot.command()
 async def hello(ctx):
