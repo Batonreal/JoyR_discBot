@@ -169,7 +169,7 @@ async def fetch_images(ctx):
 
 @bot.command()
 async def fetch_post_content(ctx):
-    """Fetch text from post_content and send it to the Discord channel."""
+    """Fetch text from post_content, save it to JSON, and send it to the Discord channel."""
     url = "https://polit.reactor.cc/"
     response = requests.get(url)
     if response.status_code == 200:
@@ -180,9 +180,16 @@ async def fetch_post_content(ctx):
             await ctx.send("No posts found on the page.")
             return
 
+        processed_posts = load_processed_posts()  # Load already processed post IDs
+
         for post in posts:
             post_id = post.get('id')
             if not post_id:
+                continue
+
+            # Skip if the post ID is already processed
+            if post_id in processed_posts:
+                print(f"Skipping already processed post: {post_id}")
                 continue
 
             post_content = post.find('div', class_='post_content')
@@ -196,6 +203,10 @@ async def fetch_post_content(ctx):
                     max_length = 2000 - len(prefix)
                     for i in range(0, len(text_content), max_length):
                         await ctx.send(f"{prefix}{text_content[i:i+max_length]}")
+
+                    # Save the post ID as processed
+                    save_processed_post(post_id)
+                    print(f"Post {post_id} processed and saved.")
                 else:
                     await ctx.send(f"No text found in post ID {post_id}.")
             else:
